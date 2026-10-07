@@ -7,8 +7,210 @@ import {
   Polyline,
 } from "react-leaflet";
 import L from "leaflet";
-
 import "leaflet/dist/leaflet.css";
+
+function DriverDashboard({
+  routes,
+  ambulanceAssigned,
+  emergencyAccepted,
+  ambulanceFinished,
+  onAccept,
+}) {
+  const bestRoute = routes.length > 0 ? routes[0] : null;
+
+  return (
+    <div
+      id="driver-dashboard"
+      style={{
+        background: "#ffffff",
+        border: "3px solid #2563eb",
+        borderRadius: "15px",
+        padding: "20px",
+        marginTop: "20px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+      }}
+    >
+      <h2
+        style={{
+          color: "#1d4ed8",
+          marginTop: 0,
+        }}
+      >
+        🚑 DRIVER DASHBOARD
+      </h2>
+
+      {!ambulanceAssigned && (
+        <div
+          style={{
+            padding: "18px",
+            background: "#f1f5f9",
+            borderRadius: "10px",
+            textAlign: "center",
+          }}
+        >
+          📡 Waiting for ambulance assignment...
+        </div>
+      )}
+
+      {ambulanceAssigned && !emergencyAccepted && (
+        <>
+          <div
+            style={{
+              background: "#fee2e2",
+              border: "2px solid #ef4444",
+              padding: "15px",
+              borderRadius: "10px",
+              marginBottom: "15px",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>
+              🚨 NEW EMERGENCY REQUEST
+            </h3>
+
+            <p>
+              📍 <b>Pickup:</b> Patient Emergency
+              Location
+            </p>
+
+            <p>
+              🏥 <b>Destination:</b> Emergency
+              Hospital
+            </p>
+
+            <p>
+              🔴 <b>Priority:</b> CRITICAL
+            </p>
+
+            <p>
+              🚑 <b>Ambulance:</b> AMB-01
+            </p>
+
+            <p>
+              🟢 <b>Status:</b> Waiting for driver
+              acceptance
+            </p>
+          </div>
+
+          {bestRoute && (
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "2px solid #22c55e",
+                borderRadius: "10px",
+                padding: "15px",
+              }}
+            >
+              <h3>🤖 AI ROUTE RECOMMENDATION</h3>
+
+              <p>
+                🛣️ <b>Recommended Route:</b>{" "}
+                Route {bestRoute.routeNumber}
+              </p>
+
+              <p>
+                ⏱️ <b>AI ETA:</b>{" "}
+                {bestRoute.predictedETA} minutes
+              </p>
+
+              <p>
+                🚦 <b>Traffic:</b>{" "}
+                {bestRoute.traffic}
+              </p>
+
+              <p>
+                📏 <b>Distance:</b>{" "}
+                {bestRoute.distance.toFixed(2)} km
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={onAccept}
+            style={{
+              width: "100%",
+              marginTop: "20px",
+              padding: "16px",
+              backgroundColor: "#16a34a",
+              color: "white",
+              border: "none",
+              borderRadius: "10px",
+              fontSize: "18px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            ✅ ACCEPT EMERGENCY & START NAVIGATION
+          </button>
+        </>
+      )}
+
+      {ambulanceAssigned && emergencyAccepted && (
+        <div
+          style={{
+            background: "#dcfce7",
+            border: "2px solid #22c55e",
+            padding: "18px",
+            borderRadius: "10px",
+          }}
+        >
+          <h3 style={{ color: "#166534" }}>
+            🟢 EMERGENCY ACCEPTED
+          </h3>
+
+          <p>
+            🚑 <b>Ambulance:</b> AMB-01
+          </p>
+
+          <p>
+            🗺️ <b>Navigation:</b> Active
+          </p>
+
+          <p>
+            🤖 <b>AI Dynamic Routing:</b> Active
+          </p>
+
+          <p>
+            🚦 <b>Traffic Monitoring:</b> Active
+          </p>
+
+          {!ambulanceFinished && (
+            <div
+              style={{
+                marginTop: "15px",
+                padding: "12px",
+                background: "#dbeafe",
+                borderRadius: "8px",
+                textAlign: "center",
+                fontWeight: "bold",
+              }}
+            >
+              🚑 Ambulance is travelling to
+              the hospital...
+            </div>
+          )}
+
+          {ambulanceFinished && (
+            <div
+              style={{
+                marginTop: "15px",
+                padding: "12px",
+                background: "#bbf7d0",
+                borderRadius: "8px",
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "#166534",
+              }}
+            >
+              🏥 EMERGENCY COMPLETED
+              <br />
+              Ambulance reached the hospital.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function App() {
   const ambulanceStart = [17.9784, 79.5941];
@@ -16,16 +218,28 @@ function App() {
 
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [lastUpdated, setLastUpdated] =
+    useState(new Date());
 
   const [ambulancePosition, setAmbulancePosition] =
     useState(ambulanceStart);
 
-  const [ambulanceIndex, setAmbulanceIndex] = useState(0);
-  const [ambulanceProgress, setAmbulanceProgress] = useState(0);
-  const [ambulanceFinished, setAmbulanceFinished] = useState(false);
+  const [ambulanceIndex, setAmbulanceIndex] =
+    useState(0);
+
+  const [ambulanceProgress, setAmbulanceProgress] =
+    useState(0);
+
+  const [ambulanceFinished, setAmbulanceFinished] =
+    useState(false);
 
   const [liveETA, setLiveETA] = useState(null);
+
+  const [ambulanceAssigned, setAmbulanceAssigned] =
+    useState(false);
+
+  const [emergencyAccepted, setEmergencyAccepted] =
+    useState(false);
 
   const [chatInput, setChatInput] = useState("");
 
@@ -36,10 +250,6 @@ function App() {
         "Hello! I am the Emergency Route Assistant. Ask me about the best route, traffic, ETA, safety, ambulance location, or the Green Corridor.",
     },
   ]);
-
-  // ============================================================
-  // FLASHING AMBULANCE ICON
-  // ============================================================
 
   const ambulanceIcon = useMemo(() => {
     return L.divIcon({
@@ -56,14 +266,13 @@ function App() {
     });
   }, []);
 
-  // ============================================================
-  // GET ROAD ROUTE FROM OSRM
-  // ============================================================
-
   const getRoute = async (waypoints) => {
     try {
       const coordinates = waypoints
-        .map((point) => `${point[1]},${point[0]}`)
+        .map(
+          (point) =>
+            `${point[1]},${point[0]}`
+        )
         .join(";");
 
       const url =
@@ -74,46 +283,61 @@ function App() {
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error("Routing request failed");
+        throw new Error(
+          "Routing request failed"
+        );
       }
 
       const data = await response.json();
 
-      if (!data.routes || data.routes.length === 0) {
+      if (
+        !data.routes ||
+        data.routes.length === 0
+      ) {
         return null;
       }
 
       const route = data.routes[0];
 
       const coordinatesLatLng =
-        route.geometry.coordinates.map((point) => [
-          point[1],
-          point[0],
-        ]);
+        route.geometry.coordinates.map(
+          (point) => [
+            point[1],
+            point[0],
+          ]
+        );
 
       return {
         coordinates: coordinatesLatLng,
-        distance: route.distance / 1000,
-        normalETA: Math.ceil(route.duration / 60),
+        distance:
+          route.distance / 1000,
+        normalETA: Math.ceil(
+          route.duration / 60
+        ),
       };
     } catch (error) {
-      console.error("Routing error:", error);
+      console.error(
+        "Routing error:",
+        error
+      );
+
       return null;
     }
   };
 
-  // ============================================================
-  // FLASK AI API
-  // ============================================================
-
-  const getAIAnalysis = async (distance, vehicles, speed) => {
+  const getAIAnalysis = async (
+    distance,
+    vehicles,
+    speed
+  ) => {
     try {
       const response = await fetch(
-        "http://127.0.0.1:5000/optimize-route",
+        "https://ai-emergency-traffic-route-optimizer.onrender.com/optimize-route",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
             hour: new Date().getHours(),
@@ -125,19 +349,21 @@ function App() {
       );
 
       if (!response.ok) {
-        throw new Error("AI API request failed");
+        throw new Error(
+          "AI API request failed"
+        );
       }
 
       return await response.json();
     } catch (error) {
-      console.error("AI API error:", error);
+      console.error(
+        "AI API error:",
+        error
+      );
+
       return null;
     }
   };
-
-  // ============================================================
-  // ANALYZE ROUTES
-  // ============================================================
 
   const analyzeRoutes = async () => {
     try {
@@ -174,123 +400,156 @@ function App() {
         rawRoutes.push(route3);
       }
 
-      // ========================================================
-      // DYNAMIC TRAFFIC
-      // ========================================================
-
       const trafficInputs = [
         {
-          vehicles: Math.floor(100 + Math.random() * 100),
-          speed: Math.floor(18 + Math.random() * 12),
+          vehicles: Math.floor(
+            100 +
+              Math.random() * 100
+          ),
+          speed: Math.floor(
+            18 +
+              Math.random() * 12
+          ),
         },
         {
-          vehicles: Math.floor(60 + Math.random() * 70),
-          speed: Math.floor(25 + Math.random() * 15),
+          vehicles: Math.floor(
+            60 +
+              Math.random() * 70
+          ),
+          speed: Math.floor(
+            25 +
+              Math.random() * 15
+          ),
         },
         {
-          vehicles: Math.floor(30 + Math.random() * 50),
-          speed: Math.floor(35 + Math.random() * 15),
+          vehicles: Math.floor(
+            30 +
+              Math.random() * 50
+          ),
+          speed: Math.floor(
+            35 +
+              Math.random() * 15
+          ),
         },
       ];
 
-      // ========================================================
-      // AI ANALYSIS
-      // ========================================================
-
       const analyzedRoutes = [];
 
-      for (let i = 0; i < rawRoutes.length; i++) {
+      for (
+        let i = 0;
+        i < rawRoutes.length;
+        i++
+      ) {
         const route = rawRoutes[i];
-        const trafficInput = trafficInputs[i];
+        const trafficInput =
+          trafficInputs[i];
 
-        const aiResult = await getAIAnalysis(
-          route.distance,
-          trafficInput.vehicles,
-          trafficInput.speed
-        );
+        const aiResult =
+          await getAIAnalysis(
+            route.distance,
+            trafficInput.vehicles,
+            trafficInput.speed
+          );
 
         if (aiResult) {
           analyzedRoutes.push({
             ...route,
             routeNumber: i + 1,
-            vehicles: trafficInput.vehicles,
-            speed: trafficInput.speed,
-            traffic: aiResult.traffic,
-            predictedETA: aiResult.predicted_eta,
-            trafficPenalty: aiResult.traffic_penalty,
-            score: aiResult.route_score,
+            vehicles:
+              trafficInput.vehicles,
+            speed:
+              trafficInput.speed,
+            traffic:
+              aiResult.traffic,
+            predictedETA:
+              aiResult.predicted_eta,
+            trafficPenalty:
+              aiResult.traffic_penalty,
+            score:
+              aiResult.route_score,
           });
         }
       }
 
-      // ========================================================
-      // LOWEST SCORE = BEST ROUTE
-      // ========================================================
-
-      analyzedRoutes.sort((a, b) => a.score - b.score);
-
-      const updatedRoutes = analyzedRoutes.map(
-        (route, index) => ({
-          ...route,
-          isRecommended: index === 0,
-        })
+      analyzedRoutes.sort(
+        (a, b) =>
+          a.score - b.score
       );
+
+      const updatedRoutes =
+        analyzedRoutes.map(
+          (route, index) => ({
+            ...route,
+            isRecommended:
+              index === 0,
+          })
+        );
 
       setRoutes(updatedRoutes);
 
-      // Restart ambulance on recommended route
-      setAmbulanceIndex(0);
-      setAmbulanceProgress(0);
-      setAmbulanceFinished(false);
-
-      if (updatedRoutes.length > 0) {
-        setAmbulancePosition(
-          updatedRoutes[0].coordinates[0]
-        );
-
+      if (
+        updatedRoutes.length > 0
+      ) {
         setLiveETA(
-          updatedRoutes[0].predictedETA
+          updatedRoutes[0]
+            .predictedETA
         );
+
+        if (
+          !emergencyAccepted
+        ) {
+          setAmbulancePosition(
+            updatedRoutes[0]
+              .coordinates[0]
+          );
+        }
       }
 
-      setLastUpdated(new Date());
+      setLastUpdated(
+        new Date()
+      );
+
       setLoading(false);
     } catch (error) {
-      console.error("Route analysis error:", error);
+      console.error(
+        "Route analysis error:",
+        error
+      );
+
       setLoading(false);
     }
   };
 
-  // ============================================================
-  // INITIAL LOAD + DYNAMIC REROUTING
-  // ============================================================
-
   useEffect(() => {
     analyzeRoutes();
 
-    const interval = setInterval(() => {
-      analyzeRoutes();
-    }, 10000);
+    const interval =
+      setInterval(() => {
+        analyzeRoutes();
+      }, 10000);
 
     return () => {
       clearInterval(interval);
     };
   }, []);
 
-  // ============================================================
-  // SMOOTH AMBULANCE MOVEMENT
-  // ============================================================
+  /*
+   * Ambulance movement starts only
+   * after driver accepts emergency.
+   */
 
   useEffect(() => {
-    const recommendedRoute = routes.find(
-      (route) => route.isRecommended
-    );
+    const recommendedRoute =
+      routes.find(
+        (route) =>
+          route.isRecommended
+      );
 
-    if (
-      !recommendedRoute ||
-      !recommendedRoute.coordinates ||
-      recommendedRoute.coordinates.length < 2
-    ) {
+    if (!recommendedRoute) {
+      return;
+    }
+
+    if (!emergencyAccepted) {
       return;
     }
 
@@ -298,48 +557,84 @@ function App() {
       return;
     }
 
-    const movementTimer = setInterval(() => {
-      setAmbulanceProgress((previousProgress) => {
-        const newProgress = previousProgress + 0.025;
+    if (
+      !recommendedRoute.coordinates ||
+      recommendedRoute
+        .coordinates.length < 2
+    ) {
+      return;
+    }
 
-        if (newProgress >= 1) {
-          setAmbulanceIndex((previousIndex) => {
-            const nextIndex = previousIndex + 1;
+    const movementTimer =
+      setInterval(() => {
+        setAmbulanceProgress(
+          (previousProgress) => {
+            const newProgress =
+              previousProgress +
+              0.025;
 
             if (
-              nextIndex >=
-              recommendedRoute.coordinates.length - 1
+              newProgress >= 1
             ) {
-              setAmbulancePosition(hospitalPosition);
-              setLiveETA(0);
-              setAmbulanceFinished(true);
+              setAmbulanceIndex(
+                (previousIndex) => {
+                  const nextIndex =
+                    previousIndex +
+                    1;
 
-              return previousIndex;
+                  if (
+                    nextIndex >=
+                    recommendedRoute
+                      .coordinates
+                      .length -
+                      1
+                  ) {
+                    setAmbulancePosition(
+                      hospitalPosition
+                    );
+
+                    setLiveETA(0);
+
+                    setAmbulanceFinished(
+                      true
+                    );
+
+                    return previousIndex;
+                  }
+
+                  return nextIndex;
+                }
+              );
+
+              return 0;
             }
 
-            return nextIndex;
-          });
-
-          return 0;
-        }
-
-        return newProgress;
-      });
-    }, 80);
+            return newProgress;
+          }
+        );
+      }, 80);
 
     return () => {
-      clearInterval(movementTimer);
+      clearInterval(
+        movementTimer
+      );
     };
-  }, [routes, ambulanceFinished]);
-
-  // ============================================================
-  // CALCULATE SMOOTH POSITION
-  // ============================================================
+  }, [
+    routes,
+    emergencyAccepted,
+    ambulanceFinished,
+  ]);
 
   useEffect(() => {
-    const recommendedRoute = routes.find(
-      (route) => route.isRecommended
-    );
+    if (!emergencyAccepted) {
+      return;
+    }
+
+    const recommendedRoute =
+      routes.find(
+        (route) =>
+          route.isRecommended
+      );
 
     if (
       !recommendedRoute ||
@@ -348,107 +643,213 @@ function App() {
       return;
     }
 
-    const coordinates = recommendedRoute.coordinates;
+    const coordinates =
+      recommendedRoute.coordinates;
 
-    if (ambulanceIndex >= coordinates.length - 1) {
+    if (
+      ambulanceIndex >=
+      coordinates.length - 1
+    ) {
       return;
     }
 
-    const startPoint = coordinates[ambulanceIndex];
-    const endPoint = coordinates[ambulanceIndex + 1];
+    const startPoint =
+      coordinates[
+        ambulanceIndex
+      ];
+
+    const endPoint =
+      coordinates[
+        ambulanceIndex + 1
+      ];
 
     const lat =
       startPoint[0] +
-      (endPoint[0] - startPoint[0]) *
+      (endPoint[0] -
+        startPoint[0]) *
         ambulanceProgress;
 
     const lng =
       startPoint[1] +
-      (endPoint[1] - startPoint[1]) *
+      (endPoint[1] -
+        startPoint[1]) *
         ambulanceProgress;
 
-    setAmbulancePosition([lat, lng]);
+    setAmbulancePosition([
+      lat,
+      lng,
+    ]);
   }, [
     ambulanceIndex,
     ambulanceProgress,
     routes,
+    emergencyAccepted,
   ]);
 
-  // ============================================================
-  // LIVE ETA COUNTDOWN
-  // ============================================================
-
   useEffect(() => {
-    if (liveETA === null || liveETA <= 0) {
+    if (
+      !emergencyAccepted ||
+      liveETA === null ||
+      liveETA <= 0
+    ) {
       return;
     }
 
-    const etaTimer = setInterval(() => {
-      setLiveETA((previousETA) => {
-        if (previousETA === null) {
-          return null;
-        }
+    const etaTimer =
+      setInterval(() => {
+        setLiveETA(
+          (previousETA) => {
+            if (
+              previousETA === null
+            ) {
+              return null;
+            }
 
-        const nextETA = previousETA - 0.1;
+            const nextETA =
+              previousETA -
+              0.1;
 
-        return nextETA > 0 ? nextETA : 0;
-      });
-    }, 1000);
+            return nextETA > 0
+              ? nextETA
+              : 0;
+          }
+        );
+      }, 1000);
 
     return () => {
       clearInterval(etaTimer);
     };
-  }, [routes]);
+  }, [
+    routes,
+    emergencyAccepted,
+  ]);
 
-  // ============================================================
-  // TRAFFIC COLOR
-  // ============================================================
-
-  const getTrafficColor = (traffic) => {
+  const getTrafficColor = (
+    traffic
+  ) => {
     if (traffic === "LOW") {
       return "green";
     }
 
-    if (traffic === "MEDIUM") {
+    if (
+      traffic === "MEDIUM"
+    ) {
       return "orange";
     }
 
     return "red";
   };
 
-  // ============================================================
-  // CHAT ASSISTANT
-  // ============================================================
+  /*
+   * STEP 1:
+   * Dispatcher assigns ambulance.
+   */
+
+  const assignAmbulance = () => {
+    setAmbulanceAssigned(
+      true
+    );
+
+    setEmergencyAccepted(
+      false
+    );
+
+    setAmbulanceFinished(
+      false
+    );
+
+    setAmbulanceIndex(0);
+    setAmbulanceProgress(0);
+
+    if (routes.length > 0) {
+      setAmbulancePosition(
+        routes[0].coordinates[0]
+      );
+
+      setLiveETA(
+        routes[0].predictedETA
+      );
+    }
+
+    setTimeout(() => {
+      document
+        .getElementById(
+          "driver-dashboard"
+        )
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+    }, 100);
+  };
+
+  /*
+   * STEP 2:
+   * Driver accepts emergency.
+   */
+
+  const acceptEmergency = () => {
+    setEmergencyAccepted(
+      true
+    );
+
+    setAmbulanceFinished(
+      false
+    );
+
+    setAmbulanceIndex(0);
+    setAmbulanceProgress(0);
+
+    if (routes.length > 0) {
+      setAmbulancePosition(
+        routes[0].coordinates[0]
+      );
+
+      setLiveETA(
+        routes[0].predictedETA
+      );
+    }
+  };
 
   const handleChat = () => {
     if (!chatInput.trim()) {
       return;
     }
 
-    const question = chatInput.trim();
-    const lowerQuestion = question.toLowerCase();
+    const question =
+      chatInput.trim();
+
+    const lowerQuestion =
+      question.toLowerCase();
 
     let answer =
       "I can help you understand the current ambulance routes, traffic, ETA, route score, safety, and emergency corridor.";
 
     if (
-      lowerQuestion.includes("best") ||
-      lowerQuestion.includes("recommended") ||
-      lowerQuestion.includes("which route")
+      lowerQuestion.includes(
+        "best"
+      ) ||
+      lowerQuestion.includes(
+        "recommended"
+      ) ||
+      lowerQuestion.includes(
+        "which route"
+      )
     ) {
       if (routes.length > 0) {
-        const bestRoute = routes[0];
+        const bestRoute =
+          routes[0];
 
         answer =
-          `Currently, Route ${bestRoute.routeNumber} is recommended. ` +
-          `Its AI predicted ETA is ${bestRoute.predictedETA} minutes, ` +
-          `with ${bestRoute.traffic} traffic and a route score of ${bestRoute.score}.`;
+          `Currently, Route ${bestRoute.routeNumber} is recommended. Its AI predicted ETA is ${bestRoute.predictedETA} minutes, with ${bestRoute.traffic} traffic and a route score of ${bestRoute.score}.`;
       } else {
         answer =
           "Route analysis is still loading. Please wait.";
       }
     } else if (
-      lowerQuestion.includes("traffic")
+      lowerQuestion.includes(
+        "traffic"
+      )
     ) {
       if (routes.length > 0) {
         answer =
@@ -462,9 +863,15 @@ function App() {
           ".";
       }
     } else if (
-      lowerQuestion.includes("eta") ||
-      lowerQuestion.includes("time") ||
-      lowerQuestion.includes("how long")
+      lowerQuestion.includes(
+        "eta"
+      ) ||
+      lowerQuestion.includes(
+        "time"
+      ) ||
+      lowerQuestion.includes(
+        "how long"
+      )
     ) {
       if (routes.length > 0) {
         answer =
@@ -478,17 +885,24 @@ function App() {
           ".";
       }
     } else if (
-      lowerQuestion.includes("safe") ||
-      lowerQuestion.includes("safety")
+      lowerQuestion.includes(
+        "safe"
+      ) ||
+      lowerQuestion.includes(
+        "safety"
+      )
     ) {
       if (routes.length > 0) {
-        const bestRoute = routes[0];
+        const bestRoute =
+          routes[0];
 
         answer =
           `Route ${bestRoute.routeNumber} is currently preferred because it has the lowest AI route score.`;
       }
     } else if (
-      lowerQuestion.includes("vehicle")
+      lowerQuestion.includes(
+        "vehicle"
+      )
     ) {
       if (routes.length > 0) {
         answer =
@@ -502,7 +916,9 @@ function App() {
           ".";
       }
     } else if (
-      lowerQuestion.includes("score")
+      lowerQuestion.includes(
+        "score"
+      )
     ) {
       if (routes.length > 0) {
         answer =
@@ -516,21 +932,42 @@ function App() {
           ". Lower score means a better route.";
       }
     } else if (
-      lowerQuestion.includes("green corridor") ||
-      lowerQuestion.includes("emergency corridor") ||
-      lowerQuestion.includes("priority")
+      lowerQuestion.includes(
+        "green corridor"
+      ) ||
+      lowerQuestion.includes(
+        "emergency corridor"
+      ) ||
+      lowerQuestion.includes(
+        "priority"
+      )
     ) {
       if (routes.length > 0) {
-        const bestRoute = routes[0];
+        const bestRoute =
+          routes[0];
 
         answer =
           `The Emergency Green Corridor is active on Route ${bestRoute.routeNumber}. It is the current AI-recommended route.`;
       }
     } else if (
-      lowerQuestion.includes("ambulance") ||
-      lowerQuestion.includes("where")
+      lowerQuestion.includes(
+        "ambulance"
+      ) ||
+      lowerQuestion.includes(
+        "where"
+      )
     ) {
-      if (ambulanceFinished) {
+      if (!ambulanceAssigned) {
+        answer =
+          "The ambulance has not been assigned yet.";
+      } else if (
+        !emergencyAccepted
+      ) {
+        answer =
+          "The ambulance is assigned and waiting for the driver to accept the emergency.";
+      } else if (
+        ambulanceFinished
+      ) {
         answer =
           "The ambulance has reached the hospital.";
       } else {
@@ -542,36 +979,34 @@ function App() {
         "You can ask: Which route is best? What is the traffic? What is the ETA? Which route is safer? What are the route scores? Is the Green Corridor active? Where is the ambulance?";
     }
 
-    setChatMessages((previousMessages) => [
-      ...previousMessages,
-      {
-        sender: "user",
-        text: question,
-      },
-      {
-        sender: "assistant",
-        text: answer,
-      },
-    ]);
+    setChatMessages(
+      (previousMessages) => [
+        ...previousMessages,
+        {
+          sender: "user",
+          text: question,
+        },
+        {
+          sender: "assistant",
+          text: answer,
+        },
+      ]
+    );
 
     setChatInput("");
   };
 
-  // ============================================================
-  // UI
-  // ============================================================
-
   return (
     <div
       style={{
-        fontFamily: "Arial, sans-serif",
+        fontFamily:
+          "Arial, sans-serif",
         padding: "10px",
-        backgroundColor: "#f5f7fa",
+        backgroundColor:
+          "#f5f7fa",
         minHeight: "100vh",
       }}
     >
-      {/* FLASHING AMBULANCE CSS */}
-
       <style>
         {`
           .ambulance-marker {
@@ -625,8 +1060,6 @@ function App() {
         `}
       </style>
 
-      {/* TITLE */}
-
       <h1
         style={{
           textAlign: "center",
@@ -665,335 +1098,666 @@ function App() {
         />
 
         <Marker
-          position={ambulancePosition}
+          position={
+            ambulancePosition
+          }
           icon={ambulanceIcon}
         >
           <Popup>
-            🚨 <b>Emergency Ambulance</b>
+            🚨{" "}
+            <b>
+              Emergency Ambulance
+            </b>
             <br />
-            AI Dynamic Routing Active
-            <br />
-            {ambulanceFinished
+
+            {!ambulanceAssigned
+              ? "Waiting for assignment"
+              : !emergencyAccepted
+              ? "Assigned - Waiting for driver"
+              : ambulanceFinished
               ? "🏥 Reached Hospital"
               : "🚑 En Route"}
           </Popup>
         </Marker>
 
-        <Marker position={hospitalPosition}>
+        <Marker
+          position={
+            hospitalPosition
+          }
+        >
           <Popup>
-            🏥 <b>Hospital</b>
+            🏥{" "}
+            <b>Hospital</b>
             <br />
             Emergency Destination
           </Popup>
         </Marker>
 
-        {routes.map((route) => (
-          <Polyline
-            key={route.routeNumber}
-            positions={route.coordinates}
-            pathOptions={{
-              color: route.isRecommended
-                ? "green"
-                : route.routeNumber === 2
-                ? "orange"
-                : "blue",
-              weight: route.isRecommended ? 9 : 5,
-              opacity: route.isRecommended ? 1 : 0.65,
-            }}
-          />
-        ))}
+        {routes.map(
+          (route) => (
+            <Polyline
+              key={
+                route.routeNumber
+              }
+              positions={
+                route.coordinates
+              }
+              pathOptions={{
+                color:
+                  route.isRecommended
+                    ? "green"
+                    : route.routeNumber ===
+                      2
+                    ? "orange"
+                    : "blue",
+                weight:
+                  route.isRecommended
+                    ? 9
+                    : 5,
+                opacity:
+                  route.isRecommended
+                    ? 1
+                    : 0.65,
+              }}
+            />
+          )
+        )}
       </MapContainer>
-
-      {/* MAIN DASHBOARD */}
 
       <div
         style={{
           padding: "20px",
         }}
       >
-        <h2>
-          🚨 Emergency Control Dashboard
-        </h2>
+        {/* =========================
+            DISPATCH CENTER
+        ========================== */}
 
-        {/* LIVE STATUS CARDS */}
+        <div
+          style={{
+            backgroundColor:
+              "#fff1f2",
+            border:
+              "3px solid #ef4444",
+            borderRadius: "15px",
+            padding: "20px",
+            marginBottom: "20px",
+          }}
+        >
+          <h2
+            style={{
+              color: "#b91c1c",
+              marginTop: 0,
+            }}
+          >
+            🚨 EMERGENCY DISPATCH
+            CENTER
+          </h2>
 
-        {!loading && routes.length > 0 && (
+          <p>
+            A new emergency request
+            has been received.
+          </p>
+
           <div
             style={{
               display: "grid",
               gridTemplateColumns:
                 "repeat(auto-fit, minmax(180px, 1fr))",
               gap: "12px",
-              marginBottom: "20px",
             }}
           >
             <div
               style={{
-                background: "#dcfce7",
-                border: "2px solid #22c55e",
-                borderRadius: "12px",
+                background:
+                  "#ffffff",
                 padding: "15px",
+                borderRadius:
+                  "10px",
               }}
             >
-              <div>🟢</div>
-              <b>AI Recommended Route</b>
-              <h2 style={{ margin: "8px 0" }}>
-                Route {routes[0].routeNumber}
-              </h2>
+              📍
+              <br />
+              <b>
+                Patient Location
+              </b>
+              <br />
+              Emergency Area
             </div>
 
             <div
               style={{
-                background: "#dbeafe",
-                border: "2px solid #3b82f6",
-                borderRadius: "12px",
+                background:
+                  "#ffffff",
                 padding: "15px",
+                borderRadius:
+                  "10px",
               }}
             >
-              <div>⏱️</div>
-              <b>Live ETA</b>
-              <h2 style={{ margin: "8px 0" }}>
-                {liveETA !== null
-                  ? liveETA.toFixed(1)
-                  : "--"}{" "}
-                min
-              </h2>
+              🏥
+              <br />
+              <b>
+                Destination
+              </b>
+              <br />
+              Emergency Hospital
             </div>
 
             <div
               style={{
-                background: "#fff7ed",
-                border: "2px solid #f97316",
-                borderRadius: "12px",
+                background:
+                  "#ffffff",
                 padding: "15px",
+                borderRadius:
+                  "10px",
               }}
             >
-              <div>🚦</div>
-              <b>Current Traffic</b>
-              <h2
-                style={{
-                  margin: "8px 0",
-                  color: getTrafficColor(
-                    routes[0].traffic
-                  ),
-                }}
-              >
-                {routes[0].traffic}
-              </h2>
+              🔴
+              <br />
+              <b>Priority</b>
+              <br />
+              CRITICAL
             </div>
 
             <div
               style={{
-                background: "#ede9fe",
-                border: "2px solid #8b5cf6",
-                borderRadius: "12px",
+                background:
+                  "#ffffff",
                 padding: "15px",
+                borderRadius:
+                  "10px",
               }}
             >
-              <div>🔄</div>
-              <b>AI Rerouting</b>
-              <h2
-                style={{
-                  margin: "8px 0",
-                  color: "#7c3aed",
-                }}
-              >
-                ACTIVE
-              </h2>
+              🚑
+              <br />
+              <b>
+                Available Ambulance
+              </b>
+              <br />
+              AMB-01
             </div>
           </div>
-        )}
 
-        {/* AUTO UPDATE */}
+          {!ambulanceAssigned && (
+            <button
+              onClick={
+                assignAmbulance
+              }
+              style={{
+                width: "100%",
+                marginTop: "20px",
+                padding: "16px",
+                backgroundColor:
+                  "#dc2626",
+                color: "white",
+                border: "none",
+                borderRadius:
+                  "10px",
+                fontSize: "18px",
+                fontWeight:
+                  "bold",
+                cursor: "pointer",
+              }}
+            >
+              🚑 ASSIGN AMBULANCE
+            </button>
+          )}
+
+          {ambulanceAssigned && (
+            <div
+              style={{
+                marginTop: "20px",
+                padding: "14px",
+                backgroundColor:
+                  "#dcfce7",
+                border:
+                  "2px solid #22c55e",
+                borderRadius:
+                  "10px",
+                textAlign:
+                  "center",
+                fontWeight:
+                  "bold",
+                color: "#166534",
+              }}
+            >
+              ✅ AMB-01 ASSIGNED
+              <br />
+              📱 Emergency request
+              sent to driver
+            </div>
+          )}
+        </div>
+
+        {/* =========================
+            DRIVER DASHBOARD
+        ========================== */}
+
+        <DriverDashboard
+          routes={routes}
+          ambulanceAssigned={
+            ambulanceAssigned
+          }
+          emergencyAccepted={
+            emergencyAccepted
+          }
+          ambulanceFinished={
+            ambulanceFinished
+          }
+          onAccept={
+            acceptEmergency
+          }
+        />
+
+        {/* =========================
+            AI CONTROL DASHBOARD
+        ========================== */}
+
+        <h2
+          style={{
+            marginTop: "30px",
+          }}
+        >
+          🚨 AI Emergency Control
+          Dashboard
+        </h2>
+
+        {!loading &&
+          routes.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "12px",
+                marginBottom:
+                  "20px",
+              }}
+            >
+              <div
+                style={{
+                  background:
+                    "#dcfce7",
+                  border:
+                    "2px solid #22c55e",
+                  borderRadius:
+                    "12px",
+                  padding: "15px",
+                }}
+              >
+                🟢
+                <br />
+                <b>
+                  AI Recommended
+                  Route
+                </b>
+
+                <h2>
+                  Route{" "}
+                  {
+                    routes[0]
+                      .routeNumber
+                  }
+                </h2>
+              </div>
+
+              <div
+                style={{
+                  background:
+                    "#dbeafe",
+                  border:
+                    "2px solid #3b82f6",
+                  borderRadius:
+                    "12px",
+                  padding: "15px",
+                }}
+              >
+                ⏱️
+                <br />
+                <b>Live ETA</b>
+
+                <h2>
+                  {liveETA !== null
+                    ? liveETA.toFixed(
+                        1
+                      )
+                    : "--"}{" "}
+                  min
+                </h2>
+              </div>
+
+              <div
+                style={{
+                  background:
+                    "#fff7ed",
+                  border:
+                    "2px solid #f97316",
+                  borderRadius:
+                    "12px",
+                  padding: "15px",
+                }}
+              >
+                🚦
+                <br />
+                <b>
+                  Current Traffic
+                </b>
+
+                <h2
+                  style={{
+                    color:
+                      getTrafficColor(
+                        routes[0]
+                          .traffic
+                      ),
+                  }}
+                >
+                  {
+                    routes[0]
+                      .traffic
+                  }
+                </h2>
+              </div>
+
+              <div
+                style={{
+                  background:
+                    "#ede9fe",
+                  border:
+                    "2px solid #8b5cf6",
+                  borderRadius:
+                    "12px",
+                  padding: "15px",
+                }}
+              >
+                🔄
+                <br />
+                <b>
+                  AI Rerouting
+                </b>
+
+                <h2
+                  style={{
+                    color:
+                      "#7c3aed",
+                  }}
+                >
+                  ACTIVE
+                </h2>
+              </div>
+            </div>
+          )}
+
+        {/* DYNAMIC STATUS */}
 
         <div
           style={{
-            backgroundColor: "#e0f2fe",
-            border: "2px solid #38bdf8",
             padding: "12px",
+            backgroundColor:
+              "#e0f2fe",
+            border:
+              "2px solid #38bdf8",
             borderRadius: "8px",
-            marginBottom: "15px",
+            marginBottom:
+              "15px",
           }}
         >
-          🔄 <b>Dynamic rerouting active every 10 seconds</b>
+          🔄{" "}
+          <b>
+            Dynamic rerouting
+            active every 10
+            seconds
+          </b>
+
           <br />
-          🕐 <b>Last Updated:</b>{" "}
+
+          🕐{" "}
+          <b>
+            Last Updated:
+          </b>{" "}
           {lastUpdated.toLocaleTimeString()}
         </div>
-
-        {/* LOADING */}
 
         {loading && (
           <div
             style={{
               padding: "15px",
-              backgroundColor: "#fff7ed",
-              border: "2px solid #fb923c",
-              borderRadius: "8px",
-              marginBottom: "15px",
+              backgroundColor:
+                "#fff7ed",
+              border:
+                "2px solid #fb923c",
+              borderRadius:
+                "8px",
             }}
           >
-            ⏳ <b>AI is recalculating routes...</b>
+            ⏳{" "}
+            <b>
+              AI is recalculating
+              routes...
+            </b>
           </div>
         )}
 
         {/* GREEN CORRIDOR */}
 
-        {!loading && routes.length > 0 && (
-          <div
-            style={{
-              backgroundColor: "#dcfce7",
-              border: "3px solid #16a34a",
-              borderRadius: "12px",
-              padding: "18px",
-              marginBottom: "20px",
-            }}
-          >
-            <h2
+        {!loading &&
+          routes.length > 0 && (
+            <div
               style={{
-                marginTop: "0",
-                color: "#166534",
+                backgroundColor:
+                  "#dcfce7",
+                border:
+                  "3px solid #16a34a",
+                borderRadius:
+                  "12px",
+                padding: "18px",
+                marginTop: "20px",
               }}
             >
-              🚦 EMERGENCY GREEN CORRIDOR ACTIVE
-            </h2>
+              <h2
+                style={{
+                  color:
+                    "#166534",
+                  marginTop: 0,
+                }}
+              >
+                🚦 EMERGENCY GREEN
+                CORRIDOR ACTIVE
+              </h2>
 
-            <p>
-              🚑 <b>Priority Route:</b> Route{" "}
-              {routes[0].routeNumber}
-            </p>
+              <p>
+                🚑{" "}
+                <b>
+                  Priority Route:
+                </b>{" "}
+                Route{" "}
+                {
+                  routes[0]
+                    .routeNumber
+                }
+              </p>
 
-            <p>
-              🏆 <b>AI Reason:</b> Lowest route score
-            </p>
+              <p>
+                🏆{" "}
+                <b>
+                  AI Reason:
+                </b>{" "}
+                Lowest route
+                score
+              </p>
 
-            <p>
-              ⏱️ <b>AI Predicted ETA:</b>{" "}
-              {routes[0].predictedETA} minutes
-            </p>
+              <p>
+                ⏱️{" "}
+                <b>
+                  AI Predicted
+                  ETA:
+                </b>{" "}
+                {
+                  routes[0]
+                    .predictedETA
+                }{" "}
+                minutes
+              </p>
 
-            <p>
-              🚨 <b>Live Ambulance Status:</b>{" "}
-              {ambulanceFinished
-                ? "🏥 Reached Hospital"
-                : "🚑 Emergency Transit"}
-            </p>
+              <p>
+                🚑{" "}
+                <b>
+                  Ambulance
+                  Status:
+                </b>{" "}
+                {!ambulanceAssigned
+                  ? "⏳ Waiting for Assignment"
+                  : !emergencyAccepted
+                  ? "📱 Driver Notification Sent"
+                  : ambulanceFinished
+                  ? "🏥 Reached Hospital"
+                  : "🚨 Emergency Transit"}
+              </p>
 
-            <p
-              style={{
-                fontWeight: "bold",
-                color: "#166534",
-              }}
-            >
-              🟢 Priority corridor selected by the AI
-              route optimizer.
-            </p>
-
-            <small>
-              *Green Corridor is simulated for the
-              hackathon demonstration and does not
-              control real traffic signals.
-            </small>
-          </div>
-        )}
+              <small>
+                *Green Corridor is
+                simulated for the
+                hackathon demonstration
+                and does not control
+                real traffic signals.
+              </small>
+            </div>
+          )}
 
         {/* ROUTE CARDS */}
 
         {!loading &&
-          routes.map((route) => (
-            <div
-              key={route.routeNumber}
-              style={{
-                border: route.isRecommended
-                  ? "3px solid #16a34a"
-                  : "2px solid #ddd",
-                borderRadius: "12px",
-                padding: "18px",
-                marginBottom: "15px",
-                backgroundColor: route.isRecommended
-                  ? "#f0fdf4"
-                  : "#ffffff",
-                boxShadow:
-                  "0 2px 6px rgba(0,0,0,0.08)",
-              }}
-            >
-              <h2>
-                {route.isRecommended
-                  ? "🟢 🚑 EMERGENCY GREEN CORRIDOR"
-                  : `🛣️ Route ${route.routeNumber}`}
-              </h2>
+          routes.map(
+            (route) => (
+              <div
+                key={
+                  route.routeNumber
+                }
+                style={{
+                  border:
+                    route.isRecommended
+                      ? "3px solid #16a34a"
+                      : "2px solid #ddd",
+                  borderRadius:
+                    "12px",
+                  padding: "18px",
+                  marginTop:
+                    "15px",
+                  backgroundColor:
+                    route.isRecommended
+                      ? "#f0fdf4"
+                      : "#ffffff",
+                  boxShadow:
+                    "0 2px 6px rgba(0,0,0,0.08)",
+                }}
+              >
+                <h2>
+                  {route.isRecommended
+                    ? "🟢 🚑 AI RECOMMENDED ROUTE"
+                    : `🛣️ Route ${route.routeNumber}`}
+                </h2>
 
-              <p>
-                📏 <b>Distance:</b>{" "}
-                {route.distance.toFixed(2)} km
-              </p>
+                <p>
+                  📏{" "}
+                  <b>
+                    Distance:
+                  </b>{" "}
+                  {route.distance.toFixed(
+                    2
+                  )}{" "}
+                  km
+                </p>
 
-              <p>
-                🚗 <b>Vehicles:</b> {route.vehicles}
-              </p>
+                <p>
+                  🚗{" "}
+                  <b>
+                    Vehicles:
+                  </b>{" "}
+                  {
+                    route.vehicles
+                  }
+                </p>
 
-              <p>
-                🏎️ <b>Average Speed:</b>{" "}
-                {route.speed} km/h
-              </p>
+                <p>
+                  🏎️{" "}
+                  <b>
+                    Average Speed:
+                  </b>{" "}
+                  {
+                    route.speed
+                  }{" "}
+                  km/h
+                </p>
 
-              <p>
-                🚦 <b>AI Traffic:</b>{" "}
-                <span
-                  style={{
-                    color: getTrafficColor(
+                <p>
+                  🚦{" "}
+                  <b>
+                    AI Traffic:
+                  </b>{" "}
+                  <span
+                    style={{
+                      color:
+                        getTrafficColor(
+                          route.traffic
+                        ),
+                      fontWeight:
+                        "bold",
+                    }}
+                  >
+                    {
                       route.traffic
-                    ),
-                    fontWeight: "bold",
-                  }}
-                >
-                  {route.traffic}
-                </span>
-              </p>
+                    }
+                  </span>
+                </p>
 
-              <p>
-                ⏱️ <b>AI Predicted ETA:</b>{" "}
-                {route.predictedETA} minutes
-              </p>
+                <p>
+                  ⏱️{" "}
+                  <b>
+                    AI Predicted
+                    ETA:
+                  </b>{" "}
+                  {
+                    route.predictedETA
+                  }{" "}
+                  minutes
+                </p>
 
-              <p>
-                ⚠️ <b>Traffic Penalty:</b>{" "}
-                {route.trafficPenalty}
-              </p>
+                <p>
+                  ⚠️{" "}
+                  <b>
+                    Traffic
+                    Penalty:
+                  </b>{" "}
+                  {
+                    route.trafficPenalty
+                  }
+                </p>
 
-              <p>
-                🧮 <b>AI Route Score:</b>{" "}
-                {route.score}
-              </p>
+                <p>
+                  🧮{" "}
+                  <b>
+                    AI Route
+                    Score:
+                  </b>{" "}
+                  {
+                    route.score
+                  }
+                </p>
+              </div>
+            )
+          )}
 
-              {route.isRecommended && (
-                <div
-                  style={{
-                    marginTop: "15px",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    backgroundColor: "#dcfce7",
-                    border: "2px solid #22c55e",
-                    fontWeight: "bold",
-                    fontSize: "17px",
-                  }}
-                >
-                  🚑 ⭐ AI RECOMMENDED ROUTE
-                  <br />
-                  🚨 Ambulance simulation active
-                </div>
-              )}
-            </div>
-          ))}
-
-        {/* CHATBOX */}
+        {/* CHAT ASSISTANT */}
 
         <div
           style={{
             marginTop: "30px",
-            backgroundColor: "#ffffff",
-            border: "3px solid #7c3aed",
-            borderRadius: "15px",
+            backgroundColor:
+              "#ffffff",
+            border:
+              "3px solid #7c3aed",
+            borderRadius:
+              "15px",
             padding: "20px",
             boxShadow:
               "0 4px 12px rgba(0,0,0,0.12)",
@@ -1001,92 +1765,104 @@ function App() {
         >
           <h2
             style={{
-              color: "#6d28d9",
-              marginTop: "0",
+              color:
+                "#6d28d9",
+              marginTop: 0,
             }}
           >
-            💬 Mandana AI
-            <br />
-            <span
-              style={{
-                fontSize: "16px",
-                color: "#555",
-                fontWeight: "normal",
-              }}
-            >
-              Emergency Route Assistant
-            </span>
+            💬 Emergency Route
+            Assistant
           </h2>
 
           <p>
-            Ask about routes, traffic, ETA, safety,
-            ambulance location, or Green Corridor.
+            Ask about routes,
+            traffic, ETA,
+            ambulance or
+            Green Corridor.
           </p>
-
-          {/* CHAT MESSAGES */}
 
           <div
             style={{
               height: "280px",
-              overflowY: "auto",
-              backgroundColor: "#f8fafc",
-              border: "1px solid #ddd",
-              borderRadius: "10px",
+              overflowY:
+                "auto",
+              backgroundColor:
+                "#f8fafc",
+              border:
+                "1px solid #ddd",
+              borderRadius:
+                "10px",
               padding: "12px",
-              marginBottom: "15px",
+              marginBottom:
+                "15px",
             }}
           >
             {chatMessages.map(
-              (message, index) => (
+              (
+                message,
+                index
+              ) => (
                 <div
                   key={index}
                   style={{
-                    display: "flex",
+                    display:
+                      "flex",
                     justifyContent:
-                      message.sender === "user"
+                      message.sender ===
+                      "user"
                         ? "flex-end"
                         : "flex-start",
-                    marginBottom: "10px",
+                    marginBottom:
+                      "10px",
                   }}
                 >
                   <div
                     style={{
-                      maxWidth: "80%",
-                      padding: "10px 14px",
-                      borderRadius: "12px",
+                      maxWidth:
+                        "80%",
+                      padding:
+                        "10px 14px",
+                      borderRadius:
+                        "12px",
                       backgroundColor:
-                        message.sender === "user"
+                        message.sender ===
+                        "user"
                           ? "#dbeafe"
                           : "#ede9fe",
                       border:
-                        message.sender === "user"
+                        message.sender ===
+                        "user"
                           ? "1px solid #93c5fd"
                           : "1px solid #c4b5fd",
                     }}
                   >
                     <b>
-                      {message.sender === "user"
+                      {message.sender ===
+                      "user"
                         ? "You"
                         : "🤖 Assistant"}
                     </b>
 
                     <br />
 
-                    {message.text}
+                    {
+                      message.text
+                    }
                   </div>
                 </div>
               )
             )}
           </div>
 
-          {/* QUICK QUESTIONS */}
-
           <div
             style={{
-              display: "flex",
+              display:
+                "flex",
               gap: "8px",
-              flexWrap: "wrap",
-              marginBottom: "12px",
+              flexWrap:
+                "wrap",
+              marginBottom:
+                "12px",
             }}
           >
             <button
@@ -1095,14 +1871,6 @@ function App() {
                   "Which route is best?"
                 )
               }
-              style={{
-                padding: "8px 12px",
-                borderRadius: "20px",
-                border:
-                  "1px solid #8b5cf6",
-                backgroundColor: "#f5f3ff",
-                cursor: "pointer",
-              }}
             >
               🏆 Best Route?
             </button>
@@ -1113,14 +1881,6 @@ function App() {
                   "What is the traffic?"
                 )
               }
-              style={{
-                padding: "8px 12px",
-                borderRadius: "20px",
-                border:
-                  "1px solid #8b5cf6",
-                backgroundColor: "#f5f3ff",
-                cursor: "pointer",
-              }}
             >
               🚦 Traffic?
             </button>
@@ -1131,14 +1891,6 @@ function App() {
                   "What is the ETA?"
                 )
               }
-              style={{
-                padding: "8px 12px",
-                borderRadius: "20px",
-                border:
-                  "1px solid #8b5cf6",
-                backgroundColor: "#f5f3ff",
-                cursor: "pointer",
-              }}
             >
               ⏱️ ETA?
             </button>
@@ -1149,14 +1901,6 @@ function App() {
                   "Is the Green Corridor active?"
                 )
               }
-              style={{
-                padding: "8px 12px",
-                borderRadius: "20px",
-                border:
-                  "1px solid #8b5cf6",
-                backgroundColor: "#f5f3ff",
-                cursor: "pointer",
-              }}
             >
               🟢 Green Corridor?
             </button>
@@ -1167,66 +1911,110 @@ function App() {
                   "Where is the ambulance?"
                 )
               }
-              style={{
-                padding: "8px 12px",
-                borderRadius: "20px",
-                border:
-                  "1px solid #8b5cf6",
-                backgroundColor: "#f5f3ff",
-                cursor: "pointer",
-              }}
             >
               🚑 Ambulance?
             </button>
           </div>
 
-          {/* INPUT */}
-
           <div
             style={{
-              display: "flex",
+              display:
+                "flex",
               gap: "10px",
             }}
           >
             <input
               type="text"
-              value={chatInput}
-              onChange={(event) =>
+              value={
+                chatInput
+              }
+              onChange={(
+                event
+              ) =>
                 setChatInput(
-                  event.target.value
+                  event
+                    .target
+                    .value
                 )
               }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
+              onKeyDown={(
+                event
+              ) => {
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
                   handleChat();
                 }
               }}
               placeholder="Ask about the emergency route..."
               style={{
-                flex: "1",
-                padding: "12px",
+                flex: 1,
+                padding:
+                  "12px",
                 border:
                   "2px solid #c4b5fd",
-                borderRadius: "8px",
-                fontSize: "15px",
+                borderRadius:
+                  "8px",
+                fontSize:
+                  "15px",
               }}
             />
 
             <button
-              onClick={handleChat}
+              onClick={
+                handleChat
+              }
               style={{
-                padding: "12px 20px",
-                backgroundColor: "#7c3aed",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                cursor: "pointer",
+                padding:
+                  "12px 20px",
+                backgroundColor:
+                  "#7c3aed",
+                color:
+                  "white",
+                border:
+                  "none",
+                borderRadius:
+                  "8px",
+                fontWeight:
+                  "bold",
+                cursor:
+                  "pointer",
               }}
             >
               ➤ Ask
             </button>
           </div>
+        </div>
+
+        {/* DISCLAIMER */}
+
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "15px",
+            backgroundColor:
+              "#fefce8",
+            border:
+              "2px solid #eab308",
+            borderRadius:
+              "10px",
+            fontSize:
+              "14px",
+          }}
+        >
+          ⚠️{" "}
+          <b>
+            Hackathon Prototype:
+          </b>{" "}
+          Traffic, vehicle counts
+          and ambulance movement
+          are simulated for
+          demonstration. In a real
+          deployment, these values
+          would come from live traffic,
+          GPS and emergency dispatch
+          systems.
         </div>
       </div>
     </div>
