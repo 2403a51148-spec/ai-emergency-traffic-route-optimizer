@@ -997,66 +997,39 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        fontFamily:
-          "Arial, sans-serif",
-        padding: "10px",
-        backgroundColor:
-          "#f5f7fa",
-        minHeight: "100vh",
-      }}
-    >
+    <div className="app-shell">
       <style>
         {`
-          .ambulance-marker {
-            background: transparent;
-            border: none;
+          * { box-sizing: border-box; }
+          body { margin: 0; background: #eef2f7; }
+          .app-shell { min-height: 100vh; background: #eef2f7; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding-bottom: 32px; }
+          .app-shell > h1 { margin: 0; padding: 30px 20px 8px; color: #f8fafc !important; background: linear-gradient(135deg,#0f172a,#1e3a5f); font-size: clamp(24px,4vw,38px); letter-spacing: -0.5px; }
+          .app-shell > p { margin: 0; padding: 0 20px 28px; color: #cbd5e1; background: linear-gradient(135deg,#0f172a,#1e3a5f); font-size: 15px !important; }
+          .app-shell > .leaflet-container { margin: 18px auto 0; width: calc(100% - 32px) !important; height: min(58vh, 560px) !important; border-radius: 18px !important; border: 1px solid #cbd5e1; box-shadow: 0 12px 30px rgba(15,23,42,.12); }
+          .app-shell > div:last-child { max-width: 1180px; margin: 0 auto; padding: 24px 16px !important; }
+          .app-shell h2 { letter-spacing: -.2px; }
+          .app-shell button { transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+          .app-shell button:hover { transform: translateY(-1px); filter: brightness(.98); box-shadow: 0 7px 18px rgba(15,23,42,.12); }
+          .app-shell button:active { transform: translateY(0); }
+          .app-shell input:focus { outline: 3px solid rgba(124,58,237,.16); border-color: #7c3aed !important; }
+          .ambulance-marker { background: transparent; border: none; }
+          .ambulance-marker-wrapper { position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; }
+          .ambulance-icon { position: relative; z-index: 2; font-size: 34px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 50%; box-shadow: 0 0 12px rgba(239,68,68,.55); }
+          .ambulance-pulse { position: absolute; width: 48px; height: 48px; border-radius: 50%; border: 3px solid #ef4444; animation: ambulancePulse 1s infinite; }
+          @keyframes ambulancePulse { 0% { transform: scale(.7); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+          @media (max-width: 700px) {
+            .app-shell > h1 { padding: 22px 16px 7px; font-size: 23px; }
+            .app-shell > p { padding: 0 16px 20px; font-size: 13px !important; }
+            .app-shell > .leaflet-container { width: calc(100% - 20px) !important; height: 48vh !important; min-height: 340px; margin-top: 10px; border-radius: 14px !important; }
+            .app-shell > div:last-child { padding: 16px 10px !important; }
+            .app-shell h2 { font-size: 20px; }
+            .app-shell h3 { font-size: 17px; }
+            .app-shell button { font-size: 15px !important; min-height: 46px; }
+            .app-shell input { min-width: 0; }
           }
 
-          .ambulance-marker-wrapper {
-            position: relative;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
 
-          .ambulance-icon {
-            position: relative;
-            z-index: 2;
-            font-size: 34px;
-            width: 42px;
-            height: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255,0,0,0.7);
-          }
 
-          .ambulance-pulse {
-            position: absolute;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: 3px solid red;
-            animation: ambulancePulse 1s infinite;
-          }
-
-          @keyframes ambulancePulse {
-            0% {
-              transform: scale(0.7);
-              opacity: 1;
-            }
-
-            100% {
-              transform: scale(1.5);
-              opacity: 0;
-            }
-          }
         `}
       </style>
 
